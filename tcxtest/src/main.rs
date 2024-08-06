@@ -1,16 +1,15 @@
-use aya::programs::{SchedClassifier, TcAttachType, LinkOrdering, tc::TcAttachOptions, tc::TcxOptions};
+use aya::programs::{tc::TcAttachOptions, LinkOrder, SchedClassifier, TcAttachType};
 use aya::{include_bytes_aligned, Ebpf};
 use aya_log::EbpfLogger;
-use log::{info, warn, debug};
-use tokio::signal;
 use clap::Parser;
+use log::{debug, info, warn};
+use tokio::signal;
 
 #[derive(Debug, Parser)]
 struct Opt {
     #[clap(short, long, default_value = "eth0")]
     iface: String,
 }
-
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
@@ -47,20 +46,12 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let program: &mut SchedClassifier = bpf.program_mut("tcxtestfirst").unwrap().try_into()?;
     program.load()?;
-    let ordering = LinkOrdering::First;
-    let options = TcAttachOptions::TCXOptions(TcxOptions{
-        ordering,
-        expected_revision: None,
-    });
+    let options = TcAttachOptions::tcxoptions(LinkOrder::first());
     program.attach_with_options(&opt.iface, TcAttachType::Ingress, options)?;
 
     let program: &mut SchedClassifier = bpf.program_mut("tcxtestlast").unwrap().try_into()?;
     program.load()?;
-    let ordering = LinkOrdering::Last;
-    let options = TcAttachOptions::TCXOptions(TcxOptions{
-        ordering,
-        expected_revision: None,
-    });
+    let options = TcAttachOptions::tcxoptions(LinkOrder::last());
     program.attach_with_options(&opt.iface, TcAttachType::Ingress, options)?;
 
     info!("Waiting for Ctrl-C...");

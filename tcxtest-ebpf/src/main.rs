@@ -1,14 +1,14 @@
 #![no_std]
 #![no_main]
 
-use aya_ebpf::{macros::classifier, programs::TcContext, bindings::{TCX_NEXT, TCX_PASS}};
+use aya_ebpf::bindings::tcx_action_base::{TCX_NEXT, TCX_PASS};
+use aya_ebpf::{macros::classifier, programs::TcContext};
 use aya_log_ebpf::info;
+use core::mem;
 use network_types::{
     eth::{EthHdr, EtherType},
     ip::{IpProto, Ipv4Hdr},
 };
-use core::mem;
-
 
 // Gives us raw pointers to a specific offset in the packet
 #[inline(always)]
@@ -22,7 +22,6 @@ pub unsafe fn ptr_at<T>(ctx: &TcContext, offset: usize) -> Result<*mut T, i64> {
     }
     Ok((start + offset) as *mut T)
 }
-
 
 #[classifier]
 pub fn tcxtestlast(ctx: TcContext) -> i32 {
@@ -40,12 +39,9 @@ fn try_tcxtestlast(ctx: TcContext) -> Result<i32, i64> {
             match unsafe { *ipv4hdr }.proto {
                 IpProto::Icmp => {
                     info!(&ctx, "received a packet last");
-                    return Ok(TCX_NEXT)
-                },
-                _ => {
-                    return Ok(TCX_PASS)
+                    return Ok(TCX_NEXT);
                 }
-                    ,
+                _ => return Ok(TCX_PASS),
             }
         }
         _ => return Ok(TCX_PASS),
@@ -68,12 +64,9 @@ fn try_tcxtestfirst(ctx: TcContext) -> Result<i32, i64> {
             match unsafe { *ipv4hdr }.proto {
                 IpProto::Icmp => {
                     info!(&ctx, "received a packet first");
-                    return Ok(TCX_NEXT)
-                },
-                _ => {
-                    return Ok(TCX_PASS)
+                    return Ok(TCX_NEXT);
                 }
-                    ,
+                _ => return Ok(TCX_PASS),
             }
         }
         _ => return Ok(TCX_PASS),
